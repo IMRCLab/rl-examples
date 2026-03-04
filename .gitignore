@@ -1,0 +1,13 @@
+# Virtual environments
+.venv/
+venv/
+
+# Training/evaluation outputs
+runs/
+
+# Python cache/build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/

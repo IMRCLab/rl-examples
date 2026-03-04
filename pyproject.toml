@@ -1,0 +1,17 @@
+[project]
+name = "rl-examples"
+version = "0.1.0"
+description = "Reinforcement learning examples with MuJoCo, Gymnasium, and Stable-Baselines3"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "gymnasium>=1.2.0",
+    "mujoco>=3.3.0",
+    "numpy>=2.2.0",
+    "stable-baselines3>=2.7.0",
+    "tensorboard>=2.20.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.5,<0.10.0"]
+build-backend = "uv_build"
