@@ -73,17 +73,22 @@ class DiffDriveNavTask(MJXTask):
         # 1) Distance shaping — always active
         reward = -dist_xy
     
-        # 2) Yaw shaping — only when close, so navigation isn't distracted
-        if dist_xy < 0.3:
-            reward -= 0.5 * yaw_error
+        # 2) Yaw shaping — active in a wider radius and much stronger, so the
+        # robot aligns heading instead of arriving backwards (yaw ~ pi). Weight
+        # ramps up as it nears the goal.
+        if dist_xy < 0.6:
+            near = 1.0 - dist_xy / 0.6          # 0 at r=0.6, 1 at the goal
+            reward -= (1.0 + 5.0 * near) * yaw_error
 
         # 3) XY arrival bonus
         if dist_xy < self.goal_xy_threshold:
             reward += 300.0
 
-            # 4) Yaw alignment bonus — stacks on top
+            # 4) Yaw alignment bonus — graded credit for being close in heading,
+            # plus a large bonus for nailing it, to make final alignment worth it.
+            reward += 200.0 * max(0.0, 1.0 - yaw_error / np.pi)
             if yaw_error < self.goal_yaw_threshold:
-                reward += 100.0
+                reward += 300.0
 
         # Distance at current state
         x0, y0 = float(state.qpos[0]), float(state.qpos[1])
