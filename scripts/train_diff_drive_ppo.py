@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecMonitor, VecNormalize
@@ -22,13 +23,24 @@ def make_env(seed: int, action_mode="ctrl", action_repeat=DEFAULT_REPEAT):
 
 
 def main():
-    outdir = Path("runs/diff_drive_nav_ppo")
+    # action_repeat is a real hyperparameter: it sets how often the policy is
+    # queried (once per `repeat` physics steps). A policy must be evaluated at
+    # the repeat it was trained at, so each value gets its own run dir.
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--action_repeat", type=int, default=DEFAULT_REPEAT)
+    ap.add_argument("--outdir", type=str, default="")
+    ap.add_argument("--timesteps", type=int, default=600_000)
+    args = ap.parse_args()
+
+    outdir = Path(args.outdir or f"runs/diff_drive_nav_ppo_ar{args.action_repeat}")
     outdir.mkdir(parents=True, exist_ok=True)
-    
+
     action_mode = "normalized"   # change to "ctrl" if you want raw rad/s action space
 
     n_envs = 8
-    train_env = DummyVecEnv([make_env(seed=1000 + i, action_mode=action_mode) for i in range(n_envs)])
+    train_env = DummyVecEnv([make_env(seed=1000 + i, action_mode=action_mode,
+                                      action_repeat=args.action_repeat)
+                             for i in range(n_envs)])
     train_env = VecMonitor(train_env)
     # Normalize observations and rewards: the raw reward magnitude (~1e4) and
     # unnormalized obs (dist 0..5) otherwise make PPO's value learning flat.
@@ -58,8 +70,7 @@ def main():
     )
     model.set_logger(logger)
 
-    total_timesteps = 600_000   # policy steps; x10 physics steps via ActionRepeat
-    model.learn(total_timesteps=total_timesteps)
+    model.learn(total_timesteps=args.timesteps)   # policy steps
 
     model.save(str(outdir / "final_model"))
     # Save normalization stats so eval/rollout can reproduce the obs scaling.
