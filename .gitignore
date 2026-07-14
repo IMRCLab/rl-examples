@@ -4,6 +4,8 @@ venv/
 
 # Training/evaluation outputs
 runs/
+traj/
+MUJOCO_LOG.TXT
 
 # Python cache/build artifacts
 __pycache__/
