@@ -101,6 +101,9 @@ def main():
         return [float(q[0]), float(q[1]), float(quat_to_yaw(q[3:7]))]
 
     poses = [pose()]
+    # Applied wheel commands [ul, ur] rad/s, one row per pose (held across the
+    # action_repeat), so the wheel-speed plots line up with the trajectory.
+    controls = [[0.0, 0.0]]
     t_predict = 0.0
     reached = False
     n = 0
@@ -114,6 +117,7 @@ def main():
         n += 1
         p = pose()
         poses.append(p)
+        controls.append([float(c) for c in base_env._data.ctrl[:2]])
         dxy_ = float(np.hypot(p[0] - args.goal[0], p[1] - args.goal[1]))
         dyaw_ = float(abs(np.arctan2(np.sin(p[2] - args.goal[2]), np.cos(p[2] - args.goal[2]))))
         if dxy_ + args.yaw_weight * dyaw_ < args.thr:
@@ -126,6 +130,8 @@ def main():
     if args.traj_out:
         Path(args.traj_out).parent.mkdir(parents=True, exist_ok=True)
         np.savetxt(args.traj_out, np.array(poses), delimiter=",")
+        np.savetxt(str(args.traj_out).replace("_poses", "_controls"),
+                   np.array(controls), delimiter=",")
 
     cs = f"{cost_s:.6f}" if cost_s is not None else "nan"
     # Also report final distance/yaw error for debugging.
@@ -133,7 +139,8 @@ def main():
     dxy = float(np.hypot(fp[0] - args.goal[0], fp[1] - args.goal[1]))
     dyaw = float(abs(np.arctan2(np.sin(fp[2] - args.goal[2]), np.cos(fp[2] - args.goal[2]))))
     print(f"BENCH_RESULT success={1 if reached else 0} cost_s={cs} "
-          f"search_time_s={t_predict:.6f} final_dxy={dxy:.4f} final_dyaw={dyaw:.4f} steps={n}")
+          f"search_time_s={t_predict:.6f} final_dxy={dxy:.4f} final_dyaw={dyaw:.4f} steps={n} "
+          f"policy_dt={policy_dt:.6f}")
 
     env.close()
 
